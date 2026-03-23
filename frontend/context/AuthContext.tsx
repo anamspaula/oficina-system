@@ -1,6 +1,7 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import Cookies from 'js-cookie';
 
 // --- Interfaces ---
 
@@ -76,6 +77,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (foundUser) {
       const { password: _, ...userWithoutPassword } = foundUser;
       setUser(userWithoutPassword);
+      Cookies.set('auth_token', 'true', { expires: 7 });
       localStorage.setItem('@Oficina:user', JSON.stringify(userWithoutPassword));
       return true;
     }
@@ -84,6 +86,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const logout = () => {
     setUser(null);
+    Cookies.remove('auth_token');
     localStorage.removeItem('@Oficina:user');
   };
 
