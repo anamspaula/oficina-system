@@ -73,33 +73,36 @@ export function Lookup({ options, value, onChange, placeholder = 'Selecione...' 
       </div>
 
       {isOpen && (
-        <div className="absolute z-[60] w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl overflow-hidden animate-in fade-in zoom-in duration-150">
-          <div className="p-2 border-b border-slate-100 bg-slate-50">
+        <div className="absolute z-[200] w-full mt-1 bg-white border border-slate-200 rounded-md shadow-lg overflow-hidden animate-in fade-in duration-100">
+          
+          <div className="p-1.5 border-b border-slate-100 bg-slate-50">
             <input
               type="text"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Digite para buscar..."
-              className="w-full px-3 py-2 text-sm border border-slate-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white"
+              className="w-full px-2.5 py-1.5 text-xs border border-slate-300 rounded focus:outline-none focus:ring-1 focus:ring-blue-400 bg-white"
               autoFocus
             />
           </div>
           
-          <div className="max-h-60 overflow-y-auto">
+          <div className="max-h-40 overflow-y-auto text-xs custom-scrollbar">
             {filteredOptions.length > 0 ? (
               filteredOptions.map((option) => (
                 <div
                   key={option.value}
                   onClick={() => handleSelect(option.value)}
-                  className={`px-4 py-2.5 text-sm cursor-pointer hover:bg-blue-50 transition-colors ${
-                    option.value === value ? 'bg-blue-100 text-blue-800 font-semibold' : 'text-slate-700'
+                  className={`px-3 py-1.5 cursor-pointer hover:bg-blue-50 transition-colors ${
+                    option.value === value 
+                      ? 'bg-blue-100/70 text-blue-800 font-semibold' 
+                      : 'text-slate-700'
                   }`}
                 >
                   {option.label}
                 </div>
               ))
             ) : (
-              <div className="px-3 py-6 text-sm text-slate-400 text-center italic">
+              <div className="px-3 py-4 text-xs text-slate-400 text-center italic">
                 Nenhum resultado encontrado
               </div>
             )}
