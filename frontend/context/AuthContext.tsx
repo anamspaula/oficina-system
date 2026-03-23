@@ -9,6 +9,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: 'admin' | 'user';
   address?: string;
   birthDate?: string;
@@ -19,6 +20,7 @@ interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => boolean;
   logout: () => void;
+  addUser: (userData: Omit<User, 'id'>) => void;
   updateProfile: (data: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => boolean;
   loading: boolean;
@@ -26,7 +28,7 @@ interface AuthContextType {
 
 // --- Dados Mockados ---
 
-const MOCK_USERS = [
+const MOCK_USERS: User[] = [
   { 
     id: '1', 
     name: 'João Silva', 
@@ -50,7 +52,7 @@ const MOCK_USERS = [
 ];
 
 // Banco de dados em memória para a sessão atual
-let usersDatabase = [...MOCK_USERS];
+let usersDatabase: User[] = [...MOCK_USERS];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -90,6 +92,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     localStorage.removeItem('@Oficina:user');
   };
 
+  // Implementação do addUser
+  const addUser = (userData: Omit<User, 'id'>) => {
+    const newUser = {
+      ...userData,
+      id: Math.random().toString(36).substr(2, 9),
+    };
+    
+    // Adiciona ao "banco de dados" em memória
+    usersDatabase.push(newUser);
+    
+    // Log para conferência no console durante o desenvolvimento
+    console.log('Novo usuário cadastrado:', newUser);
+    console.log('Total de usuários no banco:', usersDatabase.length);
+  };
+
   const updateProfile = (data: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...data };
@@ -115,7 +132,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, logout, updateProfile, changePassword, loading }}>
+    <AuthContext.Provider value={{ 
+      user, 
+      login, 
+      logout, 
+      addUser,
+      updateProfile, 
+      changePassword, 
+      loading 
+    }}>
       {children}
     </AuthContext.Provider>
   );
