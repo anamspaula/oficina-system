@@ -1,16 +1,16 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const token = request.cookies.get('auth_token')?.value;
   const { pathname } = request.nextUrl;
 
-  // 1. Se o usuário estiver logado e tentar acessar o login, manda para o dashboard
+  // Redireciona logado tentando acessar login
   if (token && pathname === '/login') {
     return NextResponse.redirect(new URL('/dashboard', request.url));
   }
 
-  // 2. Se o usuário NÃO estiver logado e tentar acessar rotas privadas
+  // Redireciona não logado tentando acessar dashboard
   if (!token && pathname.startsWith('/dashboard')) {
     return NextResponse.redirect(new URL('/login', request.url));
   }
@@ -18,7 +18,6 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-// Configuração de quais rotas o middleware deve monitorar
 export const config = {
   matcher: ['/dashboard/:path*', '/login'],
 };

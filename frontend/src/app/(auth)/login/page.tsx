@@ -10,8 +10,6 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [showForgotPassword, setShowForgotPassword] = useState(false);
-  const [resetEmail, setResetEmail] = useState('');
-  const [resetMessage, setResetMessage] = useState('');
   
   const { login, user, loading } = useAuth();
   const router = useRouter();
@@ -53,13 +51,6 @@ export default function LoginPage() {
               <Mail className="w-8 h-8 text-white" />
             </div>
           </div>
-          
-          <h1 className="text-3xl font-bold text-center text-slate-800 mb-2">
-            Esqueceu a senha?
-          </h1>
-          <p className="text-center text-slate-600 mb-8">
-            Digite seu email para recuperar o acesso
-          </p>
         </div>
       </div>
     );
@@ -123,16 +114,6 @@ export default function LoginPage() {
           >
             Entrar
           </button>
-
-          <div className="text-center">
-            <button
-              type="button"
-              onClick={() => setShowForgotPassword(true)}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium transition"
-            >
-              Esqueceu a senha?
-            </button>
-          </div>
         </form>
 
         <div className="mt-6 pt-6 border-t border-slate-200">
