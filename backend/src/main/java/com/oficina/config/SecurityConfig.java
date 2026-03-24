@@ -33,7 +33,8 @@ public class SecurityConfig {
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // API sem estado (JWT)
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers(HttpMethod.POST, "/auth/login").permitAll() // Libera o Login
-                .requestMatchers(HttpMethod.POST, "/auth/register").hasRole("ADMIN") // Só Admin cria User
+                .requestMatchers(HttpMethod.POST, "/auth/register").permitAll()
+                .requestMatchers("/v3/api-docs/**", "/swagger-ui/**", "/swagger-ui.html").permitAll()
                 .anyRequest().authenticated() // Todo o resto precisa de login
             )
             .build();
