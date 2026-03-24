@@ -18,6 +18,8 @@ export default function CreateUserPage() {
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
   const [error, setError] = useState('');
+  const [successMessage, setSuccessMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Apenas admins podem acessar esta página
   useEffect(() => {
@@ -26,9 +28,10 @@ export default function CreateUserPage() {
     }
   }, [user, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setSuccessMessage('');
 
     if (password !== confirmPassword) {
       setError('As senhas não coincidem');
@@ -40,8 +43,10 @@ export default function CreateUserPage() {
       return;
     }
 
+    setIsSubmitting(true);
+
     try {
-      addUser({
+      const success = await addUser({
         name,
         email,
         password,
@@ -51,9 +56,18 @@ export default function CreateUserPage() {
         role,
       });
 
-      router.push('/dashboard');
-    } catch (err) {
+      if (success) {
+        setSuccessMessage('Usuário criado com sucesso! Redirecionando...');
+        setTimeout(() => {
+          router.push('/dashboard');
+        }, 2000);
+      } else {
+        setError('Não foi possível criar o usuário. Verifique os dados informados.');
+      }
+    } catch {
       setError('Erro ao criar usuário');
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -98,6 +112,12 @@ export default function CreateUserPage() {
 
           {/* Form */}
           <form onSubmit={handleSubmit} className="px-8 py-8 space-y-8">
+            {successMessage && (
+              <div className="bg-green-50 border-l-4 border-green-500 text-green-700 px-4 py-3 rounded shadow-sm text-sm">
+                {successMessage}
+              </div>
+            )}
+
             {error && (
               <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded shadow-sm text-sm">
                 {error}
@@ -209,10 +229,11 @@ export default function CreateUserPage() {
               </button>
               <button
                 type="submit"
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200"
+                disabled={isSubmitting}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200"
               >
                 <Save className="w-4 h-4" />
-                Salvar Usuário
+                {isSubmitting ? 'Salvando...' : 'Salvar Usuário'}
               </button>
             </div>
           </form>

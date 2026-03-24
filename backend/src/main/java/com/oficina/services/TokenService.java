@@ -1,17 +1,17 @@
 package com.oficina.services;
 
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.stereotype.Service;
+
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.exceptions.JWTCreationException;
 import com.auth0.jwt.exceptions.JWTVerificationException;
 import com.oficina.entities.User;
-
-import org.springframework.beans.factory.annotation.Value;
-import org.springframework.stereotype.Service;
-
-import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 
 /** Serviço responsável por gerenciar a geração e validação de tokens JWT. */
 @Service
@@ -26,7 +26,10 @@ public class TokenService {
             Algorithm algorithm = Algorithm.HMAC256(secret);
             return JWT.create()
                     .withIssuer("apollo-veiculos-api")
-                    .withSubject(user.getEmail()) 
+                    .withSubject(user.getEmail())
+                    .withClaim("email", user.getEmail())
+                    .withClaim("name", user.getName())
+                    .withClaim("role", user.getRole().name())
                     .withExpiresAt(genExpirationDate())
                     .sign(algorithm);
         } catch (JWTCreationException exception) {
