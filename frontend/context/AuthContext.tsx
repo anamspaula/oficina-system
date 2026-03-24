@@ -1,7 +1,8 @@
 'use client';
 
 import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
-import Cookies from 'js-cookie';
+import { authService } from '@/src/services/authService';
+import { getEmailFromToken, getNameFromToken, getRoleFromToken } from '@/src/utils/jwt';
 
 // --- Interfaces ---
 
@@ -18,41 +19,14 @@ export interface User {
 
 interface AuthContextType {
   user: User | null;
-  login: (email: string, password: string) => boolean;
+  login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
-  addUser: (userData: Omit<User, 'id'>) => void;
+  addUser: (userData: Omit<User, 'id'>) => Promise<boolean>;
   updateProfile: (data: Partial<User>) => void;
   changePassword: (currentPassword: string, newPassword: string) => boolean;
   loading: boolean;
+  error: string | null;
 }
-
-// --- Dados Mockados ---
-
-const MOCK_USERS: User[] = [
-  { 
-    id: '1', 
-    name: 'João Silva', 
-    email: 'joao@oficina.com', 
-    password: '123456',
-    role: 'admin' as const,
-    address: 'Rua das Flores, 123, São Paulo - SP',
-    birthDate: '1985-05-15',
-    phone: '(11) 98765-4321'
-  },
-  { 
-    id: '2', 
-    name: 'Maria Santos', 
-    email: 'maria@oficina.com', 
-    password: '123456',
-    role: 'user' as const,
-    address: 'Av. Paulista, 1000, São Paulo - SP',
-    birthDate: '1990-08-20',
-    phone: '(11) 97654-3210'
-  }
-];
-
-// Banco de dados em memória para a sessão atual
-let usersDatabase: User[] = [...MOCK_USERS];
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
@@ -61,73 +35,121 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Recuperar sessão ao carregar a página
   useEffect(() => {
     const storedUser = localStorage.getItem('@Oficina:user');
-    if (storedUser) {
-      setUser(JSON.parse(storedUser));
+    const hasToken = authService.getToken();
+    
+    if (storedUser && hasToken) {
+      try {
+        setUser(JSON.parse(storedUser));
+      } catch {
+        localStorage.removeItem('@Oficina:user');
+        authService.clearToken();
+      }
     }
     setLoading(false);
   }, []);
 
-  const login = (email: string, password: string): boolean => {
-    const foundUser = usersDatabase.find(
-      (u) => u.email === email && u.password === password
-    );
+  const login = async (email: string, password: string): Promise<boolean> => {
+    setError(null);
+    setLoading(true);
     
-    if (foundUser) {
-      const { password: _, ...userWithoutPassword } = foundUser;
-      setUser(userWithoutPassword);
-      Cookies.set('auth_token', 'true', { expires: 7 });
-      localStorage.setItem('@Oficina:user', JSON.stringify(userWithoutPassword));
-      return true;
+    try {
+      const response = await authService.login(email, password);
+      
+      if (response.success) {
+        // Extrair informações do token JWT
+        const token = authService.getToken();
+        let userData: User;
+        
+        if (token) {
+          // Tentar extrair informações do JWT
+          const tokenEmail = getEmailFromToken(token);
+          const tokenName = getNameFromToken(token);
+          const tokenRole = getRoleFromToken(token);
+          
+          userData = {
+            id: tokenEmail || email,
+            email: tokenEmail || email,
+            name: tokenName || email.split('@')[0],
+            role: tokenRole || 'user',
+          };
+        } else {
+          // Fallback se não conseguir extrair do token
+          userData = {
+            id: email,
+            email,
+            name: email.split('@')[0],
+            role: 'user',
+          };
+        }
+        
+        setUser(userData);
+        localStorage.setItem('@Oficina:user', JSON.stringify(userData));
+        return true;
+      } else {
+        setError(response.error || 'Erro ao fazer login');
+        return false;
+      }
+    } catch (err) {
+      setError('Nao foi possível concluir o login. Tente novamente.');
+      return false;
+    } finally {
+      setLoading(false);
     }
-    return false;
   };
 
   const logout = () => {
     setUser(null);
-    Cookies.remove('auth_token');
+    authService.clearToken();
     localStorage.removeItem('@Oficina:user');
+    setError(null);
   };
 
-  // Implementação do addUser
-  const addUser = (userData: Omit<User, 'id'>) => {
-    const newUser = {
-      ...userData,
-      id: Math.random().toString(36).substr(2, 9),
-    };
+  const addUser = async (userData: Omit<User, 'id'>): Promise<boolean> => {
+    setError(null);
+    setLoading(true);
     
-    // Adiciona ao "banco de dados" em memória
-    usersDatabase.push(newUser);
-    
-    // Log para conferência no console durante o desenvolvimento
-    console.log('Novo usuário cadastrado:', newUser);
-    console.log('Total de usuários no banco:', usersDatabase.length);
+    try {
+      const response = await authService.register({
+        email: userData.email,
+        password: userData.password || '',
+        name: userData.name,
+        phone: userData.phone,
+        address: userData.address,
+        birthDate: userData.birthDate,
+        role: userData.role,
+      });
+
+      if (!response.success) {
+        setError(response.error || 'Erro ao registrar usuário');
+        return false;
+      }
+
+      return true;
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Erro desconhecido';
+      setError(errorMessage);
+      return false;
+    } finally {
+      setLoading(false);
+    }
   };
 
   const updateProfile = (data: Partial<User>) => {
     if (user) {
       const updatedUser = { ...user, ...data };
       setUser(updatedUser);
-      
-      const userIndex = usersDatabase.findIndex(u => u.id === user.id);
-      if (userIndex !== -1) {
-        usersDatabase[userIndex] = { ...usersDatabase[userIndex], ...data };
-      }
       localStorage.setItem('@Oficina:user', JSON.stringify(updatedUser));
     }
   };
 
   const changePassword = (currentPassword: string, newPassword: string): boolean => {
-    if (!user) return false;
-    
-    const foundUser = usersDatabase.find(u => u.id === user.id);
-    if (foundUser && foundUser.password === currentPassword) {
-      foundUser.password = newPassword;
-      return true;
-    }
+    // TODO: Implementar chamada para backend quando disponível
+    console.warn('changePassword ainda não implementado no backend');
     return false;
   };
 
@@ -139,7 +161,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       addUser,
       updateProfile, 
       changePassword, 
-      loading 
+      loading,
+      error
     }}>
       {children}
     </AuthContext.Provider>

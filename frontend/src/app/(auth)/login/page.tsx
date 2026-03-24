@@ -8,10 +8,10 @@ import { Mail, Car, Loader2 } from 'lucide-react';
 export default function LoginPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const [showForgotPassword, setShowForgotPassword] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showForgotPassword] = useState(false);
   
-  const { login, user, loading } = useAuth();
+  const { login, user, loading, error: contextError } = useAuth();
   const router = useRouter();
 
   // Se o usuário já estiver logado, manda para o dashboard
@@ -21,15 +21,17 @@ export default function LoginPage() {
     }
   }, [user, loading, router]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setIsSubmitting(true);
     
-    const success = login(email, password);
-    if (success) {
-      router.push('/dashboard');
-    } else {
-      setError('Email ou senha incorretos');
+    try {
+      const success = await login(email, password);
+      if (success) {
+        router.push('/dashboard');
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -81,7 +83,8 @@ export default function LoginPage() {
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition disabled:bg-slate-100"
               placeholder="seu@email.com"
               required
             />
@@ -96,23 +99,26 @@ export default function LoginPage() {
               type="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+              disabled={isSubmitting}
+              className="w-full px-4 py-3 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition disabled:bg-slate-100"
               placeholder="••••••"
               required
             />
           </div>
 
-          {error && (
+          {contextError && (
             <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-              {error}
+              {contextError}
             </div>
           )}
 
           <button
             type="submit"
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-3 rounded-lg transition duration-200 shadow-lg"
+            disabled={isSubmitting}
+            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-400 text-white font-medium py-3 rounded-lg transition duration-200 shadow-lg flex items-center justify-center gap-2"
           >
-            Entrar
+            {isSubmitting && <Loader2 className="w-4 h-4 animate-spin" />}
+            {isSubmitting ? 'Entrando...' : 'Entrar'}
           </button>
         </form>
 
