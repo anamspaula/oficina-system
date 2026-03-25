@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
 import { useData, OrderStatus } from '@/context/DataContext';
-import { Plus, Search, LayoutDashboard } from 'lucide-react';
+import { Plus, Search } from 'lucide-react';
 import { OrderCard } from '@/src/components/OrderCard';
 import { Lookup } from '@/src/components/Lookup';
 import { UserMenu } from '@/src/components/UserMenu';

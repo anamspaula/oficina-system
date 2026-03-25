@@ -24,6 +24,25 @@ export interface RegisterRequest {
   role: 'admin' | 'user';
 }
 
+export interface UserProfileUpdateRequest {
+  name: string;
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+  currentPassword?: string;
+  newPassword?: string;
+}
+
+export interface CurrentUserResponse {
+  id: string;
+  name: string;
+  email: string;
+  role: string;
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+}
+
 class AuthService {
   private getSecureLoginMessage(status: number): string {
     // Evita enumeração de usuários: mesma mensagem para credenciais inválidas.
@@ -88,6 +107,37 @@ class AuthService {
     return {
       success: false,
       error: response.error || 'Falha no registro',
+    };
+  }
+
+  async updateProfile(data: UserProfileUpdateRequest) {
+    const response = await apiService.put<unknown>('/user/me', data);
+
+    if (response.success) {
+      return {
+        success: true,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Nao foi possível atualizar o perfil',
+    };
+  }
+
+  async getCurrentUser() {
+    const response = await apiService.get<CurrentUserResponse>('/user/me');
+
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Nao foi possível carregar o perfil do usuário',
     };
   }
 
