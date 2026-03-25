@@ -1,18 +1,21 @@
 package com.oficina.config;
 
-import com.oficina.repositories.UserRepository;
-import com.oficina.services.TokenService;
-import jakarta.servlet.FilterChain;
-import jakarta.servlet.ServletException;
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
+import java.io.IOException;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
-import java.io.IOException;
+
+import com.oficina.repositories.UserRepository;
+import com.oficina.services.TokenService;
+
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 /**
  * Filtro de segurança para validar tokens JWT nas requisições.
@@ -32,13 +35,10 @@ public class SecurityFilter extends OncePerRequestFilter {
         
         if(token != null) {
             var login = tokenService.validateToken(token);
-            var userOptional = userRepository.findByEmail(login);
+            UserDetails user = userRepository.findByEmail(login).orElse(null);
 
-            if(userOptional.isPresent()) {
-                UserDetails user = userOptional.get();
-                // Cria o objeto de autenticação com as permissões (Roles) do usuário
+            if(user != null){
                 var authentication = new UsernamePasswordAuthenticationToken(user, null, user.getAuthorities());
-                // Autentica o usuário no contexto do Spring para esta requisição específica
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             }
         }
