@@ -2,6 +2,7 @@ package com.oficina.entities;
 
 import java.util.UUID;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -28,13 +29,10 @@ public class Vehicle {
     private String model;
     private Integer year;
 
-    // Esta é a contraparte da relação que está no Owner
     @ManyToOne
     @JoinColumn(name = "owner_id")
     private Owner owner;
 
-    // Se você quiser rastrear quem cadastrou:
-    @ManyToOne
-    @JoinColumn(name = "user_id")
-    private User createdBy;
+    @Column(name = "user_id")
+    private UUID userId;
 }
