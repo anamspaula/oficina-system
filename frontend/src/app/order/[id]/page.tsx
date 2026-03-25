@@ -3,9 +3,9 @@
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useData, OrderStatus } from '@/context/DataContext';
-import { ArrowLeft, ArrowRight, CheckCircle, Play, Edit, Save, X } from 'lucide-react';
+import { ArrowLeft, ArrowRight, CheckCircle, Play, Edit, Save, X, LucideIcon } from 'lucide-react';
 
-const STATUS_FLOW: Record<OrderStatus, { next?: OrderStatus; label?: string; icon?: any }> = {
+const STATUS_FLOW: Record<OrderStatus, { next?: OrderStatus; label?: string; icon?: LucideIcon }> = {
   waiting: { next: 'maintenance', label: 'Iniciar manutenção', icon: Play },
   maintenance: { next: 'ready', label: 'Marcar como pronto', icon: ArrowRight },
   ready: { next: 'finished', label: 'Finalizar', icon: CheckCircle },
@@ -199,7 +199,7 @@ export default function OrderDetailsPage() {
                 </div>
               ) : (
                 <div className="text-slate-700 leading-relaxed bg-white border border-slate-200 p-5 rounded-xl shadow-sm italic">
-                  "{order.description}"
+                  &ldquo;{order.description}&rdquo;
                 </div>
               )}
             </div>

@@ -1,8 +1,9 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authService } from '@/src/services/authService';
 import { getEmailFromToken, getNameFromToken, getRoleFromToken } from '@/src/utils/jwt';
+import type { CurrentUserResponse } from '@/src/services/authService';
 
 // --- Interfaces ---
 
@@ -22,35 +23,61 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   addUser: (userData: Omit<User, 'id'>) => Promise<boolean>;
-  updateProfile: (data: Partial<User>) => void;
-  changePassword: (currentPassword: string, newPassword: string) => boolean;
+  updateProfile: (
+    data: Partial<Pick<User, 'name' | 'address' | 'birthDate' | 'phone'>>
+  ) => Promise<{ success: boolean; error?: string }>;
+  changePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ success: boolean; error?: string }>;
   loading: boolean;
   error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
+function mapCurrentUserToContext(userData: CurrentUserResponse): User {
+  return {
+    id: userData.id,
+    email: userData.email,
+    name: userData.name,
+    role: userData.role === 'ADMIN' ? 'admin' : 'user',
+    phone: userData.phone,
+    address: userData.address,
+    birthDate: userData.birthDate,
+  };
+}
+
 // --- Provider ---
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Recuperar sessão ao carregar a página
   useEffect(() => {
+    const token = authService.getToken();
+    if (!token) return;
+
     const storedUser = localStorage.getItem('@Oficina:user');
-    const hasToken = authService.getToken();
-    
-    if (storedUser && hasToken) {
+    if (storedUser) {
       try {
-        setUser(JSON.parse(storedUser));
+        setUser(JSON.parse(storedUser) as User);
       } catch {
         localStorage.removeItem('@Oficina:user');
-        authService.clearToken();
       }
     }
-    setLoading(false);
+
+    const refreshCurrentUser = async () => {
+      const response = await authService.getCurrentUser();
+      if (!response.success || !response.data) return;
+
+      const hydratedUser = mapCurrentUserToContext(response.data);
+      setUser(hydratedUser);
+      localStorage.setItem('@Oficina:user', JSON.stringify(hydratedUser));
+    };
+
+    void refreshCurrentUser();
   }, []);
 
   const login = async (email: string, password: string): Promise<boolean> => {
@@ -61,6 +88,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       const response = await authService.login(email, password);
       
       if (response.success) {
+        const currentUserResponse = await authService.getCurrentUser();
+        if (currentUserResponse.success && currentUserResponse.data) {
+          const hydratedUser = mapCurrentUserToContext(currentUserResponse.data);
+          setUser(hydratedUser);
+          localStorage.setItem('@Oficina:user', JSON.stringify(hydratedUser));
+          return true;
+        }
+
         // Extrair informações do token JWT
         const token = authService.getToken();
         let userData: User;
@@ -94,7 +129,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         setError(response.error || 'Erro ao fazer login');
         return false;
       }
-    } catch (err) {
+    } catch {
       setError('Nao foi possível concluir o login. Tente novamente.');
       return false;
     } finally {
@@ -139,18 +174,67 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const updateProfile = (data: Partial<User>) => {
-    if (user) {
-      const updatedUser = { ...user, ...data };
-      setUser(updatedUser);
-      localStorage.setItem('@Oficina:user', JSON.stringify(updatedUser));
+  const updateProfile = async (
+    data: Partial<Pick<User, 'name' | 'address' | 'birthDate' | 'phone'>>
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return {
+        success: false,
+        error: 'Usuario nao autenticado',
+      };
     }
+
+    const payload = {
+      name: data.name ?? user.name,
+      phone: data.phone ?? user.phone,
+      address: data.address ?? user.address,
+      birthDate: data.birthDate ?? user.birthDate,
+    };
+
+    const response = await authService.updateProfile(payload);
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error || 'Erro ao atualizar perfil',
+      };
+    }
+
+    const updatedUser = { ...user, ...payload };
+    setUser(updatedUser);
+    localStorage.setItem('@Oficina:user', JSON.stringify(updatedUser));
+
+    return { success: true };
   };
 
-  const changePassword = (currentPassword: string, newPassword: string): boolean => {
-    // TODO: Implementar chamada para backend quando disponível
-    console.warn('changePassword ainda não implementado no backend');
-    return false;
+  const changePassword = async (
+    currentPassword: string,
+    newPassword: string
+  ): Promise<{ success: boolean; error?: string }> => {
+    if (!user) {
+      return {
+        success: false,
+        error: 'Usuario nao autenticado',
+      };
+    }
+
+    const response = await authService.updateProfile({
+      name: user.name,
+      phone: user.phone,
+      address: user.address,
+      birthDate: user.birthDate,
+      currentPassword,
+      newPassword,
+    });
+
+    if (!response.success) {
+      return {
+        success: false,
+        error: response.error || 'Erro ao alterar senha',
+      };
+    }
+
+    return { success: true };
   };
 
   return (

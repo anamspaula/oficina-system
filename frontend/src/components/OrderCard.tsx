@@ -32,7 +32,7 @@ export function OrderCard({ order }: OrderCardProps) {
           <p className="text-xs text-slate-400 uppercase font-bold mb-1">Proprietário</p>
           <p className="text-sm font-semibold text-slate-700">{vehicle.owner}</p>
           <p className="text-sm text-slate-600 mt-2 line-clamp-2 italic">
-            "{order.description}"
+            &ldquo;{order.description}&rdquo;
           </p>
         </div>
         

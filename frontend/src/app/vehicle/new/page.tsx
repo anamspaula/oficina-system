@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { useData } from '@/context/DataContext';
 import { ArrowLeft, Save, Car } from 'lucide-react';
@@ -14,19 +14,10 @@ export default function VehicleFormPage() {
   const isEdit = !!id;
   const existingVehicle = isEdit ? vehicles.find((v) => v.id === id) : undefined;
 
-  const [plate, setPlate] = useState('');
-  const [model, setModel] = useState('');
-  const [owner, setOwner] = useState('');
-  const [phone, setPhone] = useState('');
-
-  useEffect(() => {
-    if (existingVehicle) {
-      setPlate(existingVehicle.plate);
-      setModel(existingVehicle.model);
-      setOwner(existingVehicle.owner);
-      setPhone(existingVehicle.phone);
-    }
-  }, [existingVehicle]);
+  const [plate, setPlate] = useState(existingVehicle?.plate || '');
+  const [model, setModel] = useState(existingVehicle?.model || '');
+  const [owner, setOwner] = useState(existingVehicle?.owner || '');
+  const [phone, setPhone] = useState(existingVehicle?.phone || '');
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

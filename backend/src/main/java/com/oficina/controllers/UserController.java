@@ -4,11 +4,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.oficina.dto.UserProfileDTO;
 import com.oficina.dto.UserUpdateDTO;
 import com.oficina.entities.User;
 import com.oficina.repositories.UserRepository;
@@ -28,6 +30,23 @@ public class UserController {
 
     @Autowired
     private PasswordEncoder passwordEncoder; // Injetamos o encoder
+
+    @GetMapping("/me")
+    public ResponseEntity<UserProfileDTO> getProfile() {
+        var user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        var response = new UserProfileDTO(
+            user.getId(),
+            user.getName(),
+            user.getEmail(),
+            user.getRole().name(),
+            user.getPhone(),
+            user.getAddress(),
+            user.getBirthDate()
+        );
+
+        return ResponseEntity.ok(response);
+    }
 
     /**
      * Endpoint para atualizar o perfil do usuário autenticado.

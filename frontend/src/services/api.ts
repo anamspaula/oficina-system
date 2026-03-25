@@ -3,6 +3,8 @@
  * Centraliza todas as requisições HTTP da aplicação.
  */
 
+import Cookies from 'js-cookie';
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080';
 
 interface ApiResponse<T = unknown> {
@@ -15,7 +17,11 @@ interface ApiResponse<T = unknown> {
 class ApiService {
   private getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('@Oficina:token');
+
+    const localToken = localStorage.getItem('@Oficina:token');
+    if (localToken) return localToken;
+
+    return Cookies.get('auth_token') || null;
   }
 
   private async request<T>(

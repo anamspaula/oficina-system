@@ -9,6 +9,62 @@ export default function ProfilePage() {
   const { user, updateProfile, changePassword } = useAuth();
   const router = useRouter();
 
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-slate-50 p-4 flex items-center justify-center">
+        <p className="text-slate-600 font-medium">Carregando perfil...</p>
+      </div>
+    );
+  }
+
+  const profileFormKey = [
+    user.id,
+    user.name,
+    user.birthDate || '',
+    user.phone || '',
+    user.address || '',
+  ].join('|');
+
+  return (
+    <ProfileFormContent
+      key={profileFormKey}
+      user={user}
+      onUpdateProfile={updateProfile}
+      onChangePassword={changePassword}
+      onBackToDashboard={() => router.push('/dashboard')}
+    />
+  );
+}
+
+interface ProfileFormContentProps {
+  user: {
+    id: string;
+    name: string;
+    email: string;
+    address?: string;
+    birthDate?: string;
+    phone?: string;
+  };
+  onUpdateProfile: (data: {
+    name?: string;
+    address?: string;
+    birthDate?: string;
+    phone?: string;
+  }) => Promise<{ success: boolean; error?: string }>;
+  onChangePassword: (
+    currentPassword: string,
+    newPassword: string
+  ) => Promise<{ success: boolean; error?: string }>;
+  onBackToDashboard: () => void;
+}
+
+function ProfileFormContent({
+  user,
+  onUpdateProfile,
+  onChangePassword,
+  onBackToDashboard,
+}: ProfileFormContentProps) {
+
   const [name, setName] = useState(user?.name || '');
   const [address, setAddress] = useState(user?.address || '');
   const [birthDate, setBirthDate] = useState(user?.birthDate || '');
@@ -21,18 +77,27 @@ export default function ProfilePage() {
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
   const [showPasswordSection, setShowPasswordSection] = useState(false);
+  const [savingProfile, setSavingProfile] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
 
-  const handleProfileSubmit = (e: React.FormEvent) => {
+  const handleProfileSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
+    setSavingProfile(true);
 
-    updateProfile({ name, address, birthDate, phone });
-    setMessage('Perfil atualizado com sucesso!');
-    setTimeout(() => setMessage(''), 3000);
+    const result = await onUpdateProfile({ name, address, birthDate, phone });
+    if (result.success) {
+      setMessage('Perfil atualizado com sucesso!');
+      setTimeout(() => setMessage(''), 3000);
+    } else {
+      setError(result.error || 'Nao foi possível atualizar o perfil.');
+    }
+
+    setSavingProfile(false);
   };
 
-  const handlePasswordSubmit = (e: React.FormEvent) => {
+  const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setMessage('');
@@ -47,8 +112,10 @@ export default function ProfilePage() {
       return;
     }
 
-    const success = changePassword(currentPassword, newPassword);
-    if (success) {
+    setSavingPassword(true);
+
+    const result = await onChangePassword(currentPassword, newPassword);
+    if (result.success) {
       setMessage('Senha alterada com sucesso!');
       setCurrentPassword('');
       setNewPassword('');
@@ -56,8 +123,10 @@ export default function ProfilePage() {
       setShowPasswordSection(false);
       setTimeout(() => setMessage(''), 3000);
     } else {
-      setError('Senha atual incorreta');
+      setError(result.error || 'Senha atual incorreta');
     }
+
+    setSavingPassword(false);
   };
 
   const formatPhone = (value: string) => {
@@ -76,7 +145,7 @@ export default function ProfilePage() {
     <div className="min-h-screen bg-slate-50 p-4">
       <div className="max-w-4xl mx-auto py-8">
         <button
-          onClick={() => router.push('/dashboard')}
+          onClick={onBackToDashboard}
           className="flex items-center gap-2 text-slate-500 hover:text-slate-800 mb-6 transition font-semibold text-sm"
         >
           <ArrowLeft className="w-4 h-4" />
@@ -183,10 +252,11 @@ export default function ProfilePage() {
             <div className="pt-4 border-t border-slate-100">
               <button
                 type="submit"
+                disabled={savingProfile}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200"
               >
                 <Save className="w-4 h-4" />
-                Atualizar Perfil
+                {savingProfile ? 'Atualizando...' : 'Atualizar Perfil'}
               </button>
             </div>
           </form>
@@ -243,10 +313,11 @@ export default function ProfilePage() {
 
                   <button
                     type="submit"
+                    disabled={savingPassword}
                     className="flex items-center gap-2 bg-slate-800 hover:bg-slate-900 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-md"
                   >
                     <Lock className="w-4 h-4" />
-                    Confirmar Nova Senha
+                    {savingPassword ? 'Atualizando...' : 'Confirmar Nova Senha'}
                   </button>
                 </form>
               )}
