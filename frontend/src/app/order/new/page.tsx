@@ -8,7 +8,7 @@ import { Lookup } from '@/src/components/Lookup';
 
 export default function CreateOrderPage() {
   const router = useRouter();
-  const { vehicles, users, addOrder } = useData();
+  const { vehicles, owners, users, addOrder } = useData();
 
   const [vehicleId, setVehicleId] = useState('');
   const [description, setDescription] = useState('');
@@ -26,10 +26,13 @@ export default function CreateOrderPage() {
     router.push('/dashboard');
   };
 
-  const vehicleOptions = vehicles.map((v) => ({
-    value: v.id,
-    label: `${v.plate} - ${v.owner}`,
-  }));
+  const vehicleOptions = vehicles.map((v) => {
+    const owner = owners.find(o => o.id === v.ownerId);
+    return {
+      value: v.id,
+      label: `${v.license_plate} - ${owner ? owner.name : 'Sem Proprietário'}`,
+    };
+  }); 
 
   const responsibleOptions = users.map((u) => ({
     value: u.id,
@@ -116,7 +119,7 @@ export default function CreateOrderPage() {
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-y-4 gap-x-8">
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase text-slate-400 font-bold">Placa</span>
-                    <span className="font-mono text-lg font-bold text-slate-700">{selectedVehicle.plate}</span>
+                    <span className="font-mono text-lg font-bold text-slate-700">{selectedVehicle.license_plate}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase text-slate-400 font-bold">Modelo</span>
@@ -124,11 +127,14 @@ export default function CreateOrderPage() {
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase text-slate-400 font-bold">Proprietário</span>
-                    <span className="font-semibold text-slate-700">{selectedVehicle.owner}</span>
+                    <span className="font-semibold text-slate-700">{owners.find(o => o.id === selectedVehicle.ownerId)?.name || 'Não informado'}</span>
                   </div>
                   <div className="flex flex-col">
                     <span className="text-[10px] uppercase text-slate-400 font-bold">Contato</span>
-                    <span className="font-semibold text-slate-700">{selectedVehicle.phone}</span>
+                    <span className="font-semibold text-slate-700">
+                      {/* Buscamos o dono na lista de owners para pegar o telefone real */}
+                      {owners.find(o => o.id === selectedVehicle.ownerId)?.phone || 'Não informado'}
+                    </span>
                   </div>
                 </div>
               </div>
