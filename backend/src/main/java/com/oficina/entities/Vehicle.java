@@ -34,5 +34,5 @@ public class Vehicle {
     private Owner owner;
 
     @Column(name = "user_id")
-    private UUID userId;
+    private String userId;
 }
