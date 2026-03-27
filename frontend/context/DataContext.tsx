@@ -59,6 +59,7 @@ interface DataContextType {
   getVehicle: (id: string) => Vehicle | undefined;
   getResponsible: (id: string) => { id: string; name: string } | undefined;
   addOwner: (owner: Owner) => void;
+  updateOwner: (owner: Owner) => void;
   fetchOwners: () => Promise<void>;
   fetchVehicles: () => Promise<void>;
 }
@@ -147,6 +148,12 @@ export function DataProvider({ children }: { children: ReactNode }) {
     setOwners((prev) => [...prev, newOwner]);
   };
 
+  const updateOwner = (updatedOwner: Owner) => {
+    setOwners((prev) =>
+      prev.map((owner) => (owner.id === updatedOwner.id ? updatedOwner : owner))
+    );
+  };
+
   const addVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle | null> => {
     const payload = {
       brand: vehicle.brand,
@@ -208,6 +215,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         addVehicle,
         updateVehicle,
         addOwner,
+        updateOwner,
         addOrder,
         updateOrderStatus,
         updateOrderDescription,

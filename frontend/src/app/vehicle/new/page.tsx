@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { Owner, useData } from '@/context/DataContext';
 import { useAuth } from '@/context/AuthContext';
-import { ArrowLeft, Save, Car, UserPlus } from 'lucide-react';
+import { ArrowLeft, Save, Car, UserPlus, Pencil } from 'lucide-react';
 import { OwnerForm } from '@/src/components/OwnerForm';
 import { Lookup } from '@/src/components/Lookup';
 
@@ -13,7 +13,7 @@ export default function VehicleFormPage() {
   const id = params?.id as string;
   const router = useRouter();
   const { user } = useAuth();
-  const { vehicles, addVehicle, updateVehicle, owners, addOwner, fetchOwners } = useData();
+  const { vehicles, addVehicle, updateVehicle, owners, addOwner, updateOwner, fetchOwners } = useData();
 
   const isEdit = !!id;
   const existingVehicle = isEdit ? vehicles.find((v) => v.id === id) : undefined;
@@ -29,11 +29,13 @@ export default function VehicleFormPage() {
   // Estados do Proprietário
   const [selectedOwnerId, setSelectedOwnerId] = useState(existingVehicle?.ownerId || '');
   const [showOwnerModal, setShowOwnerModal] = useState(false);
+  const [ownerModalMode, setOwnerModalMode] = useState<'create' | 'edit'>('create');
 
   const ownerOptions = owners?.map((o) => ({
     value: o.id,
     label: `${o.name} - ${o.phone}`
   })) || [];
+  const selectedOwner = owners.find((o) => o.id === selectedOwnerId);
 
   useEffect(() => {
     void fetchOwners();
@@ -84,6 +86,12 @@ export default function VehicleFormPage() {
   const handleOwnerAdded = (newOwner: Owner) => {
     addOwner(newOwner);
     setSelectedOwnerId(newOwner.id);
+    setShowOwnerModal(false);
+  };
+
+  const handleOwnerUpdated = (updatedOwner: Owner) => {
+    updateOwner(updatedOwner);
+    setSelectedOwnerId(updatedOwner.id);
     setShowOwnerModal(false);
   };
 
@@ -184,11 +192,27 @@ export default function VehicleFormPage() {
                 </label>
                 <button
                   type="button"
-                  onClick={() => setShowOwnerModal(true)}
+                  onClick={() => {
+                    setOwnerModalMode('create');
+                    setShowOwnerModal(true);
+                  }}
                   className="flex items-center gap-1 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition"
                 >
                   <UserPlus className="w-3 h-3" />
                   NOVO CLIENTE
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!selectedOwner) return;
+                    setOwnerModalMode('edit');
+                    setShowOwnerModal(true);
+                  }}
+                  disabled={!selectedOwner}
+                  className="flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  <Pencil className="w-3 h-3" />
+                  EDITAR CLIENTE
                 </button>
               </div>
 
@@ -233,13 +257,17 @@ export default function VehicleFormPage() {
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
             <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-               <h3 className="font-bold text-slate-800">Cadastrar Novo Proprietário</h3>
+               <h3 className="font-bold text-slate-800">
+                 {ownerModalMode === 'edit' ? 'Editar Proprietário' : 'Cadastrar Novo Proprietário'}
+               </h3>
                <button onClick={() => setShowOwnerModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
             </div>
             <div className="p-8">
               <OwnerForm 
-                isModal={true} 
-                onSuccess={handleOwnerAdded} 
+                mode={ownerModalMode}
+                owner={ownerModalMode === 'edit' ? selectedOwner : undefined}
+                onSuccess={ownerModalMode === 'edit' ? handleOwnerUpdated : handleOwnerAdded}
+                onCancel={() => setShowOwnerModal(false)}
               />
             </div>
           </div>
