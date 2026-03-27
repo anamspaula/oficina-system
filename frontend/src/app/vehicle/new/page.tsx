@@ -1,8 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useData } from '@/context/DataContext';
+import { Owner, useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
 import { ArrowLeft, Save, Car, UserPlus } from 'lucide-react';
 import { OwnerForm } from '@/src/components/OwnerForm';
 import { Lookup } from '@/src/components/Lookup';
@@ -11,7 +12,8 @@ export default function VehicleFormPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  const { vehicles, addVehicle, updateVehicle, owners } = useData();
+  const { user } = useAuth();
+  const { vehicles, addVehicle, updateVehicle, owners, addOwner, fetchOwners } = useData();
 
   const isEdit = !!id;
   const existingVehicle = isEdit ? vehicles.find((v) => v.id === id) : undefined;
@@ -21,19 +23,33 @@ export default function VehicleFormPage() {
   const [license_plate, setLicensePlate] = useState(existingVehicle?.license_plate || '');
   const [model, setModel] = useState(existingVehicle?.model || '');
   const [year, setYear] = useState(existingVehicle?.year || new Date().getFullYear());
-  const [userId, setUserId] = useState(existingVehicle?.userId || 'd47e19d7-3861-48a9-bbeb-d029aba2e9c0');
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
   
   // Estados do Proprietário
   const [selectedOwnerId, setSelectedOwnerId] = useState(existingVehicle?.ownerId || '');
   const [showOwnerModal, setShowOwnerModal] = useState(false);
 
-  const ownerOptions = owners?.map((o: any) => ({
+  const ownerOptions = owners?.map((o) => ({
     value: o.id,
     label: `${o.name} - ${o.phone}`
   })) || [];
 
-  const handleSubmit = (e: React.FormEvent) => {
+  useEffect(() => {
+    void fetchOwners();
+  }, [fetchOwners]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const userId = existingVehicle?.userId || user?.id;
+    if (!userId) {
+      setError('Usuário autenticado não encontrado. Faça login novamente.');
+      return;
+    }
+
+    setIsSubmitting(true);
     
     const vehicleData = { 
       brand,
@@ -45,11 +61,17 @@ export default function VehicleFormPage() {
     };
     
     if (isEdit && id) {
-      updateVehicle(id, vehicleData);
+      await updateVehicle(id, vehicleData);
     } else {
-      addVehicle(vehicleData);
+      const savedVehicle = await addVehicle(vehicleData);
+      if (!savedVehicle) {
+        setError('Não foi possível cadastrar o veículo. Verifique os dados informados.');
+        setIsSubmitting(false);
+        return;
+      }
     }
     
+    setIsSubmitting(false);
     router.back();
   };
 
@@ -59,7 +81,8 @@ export default function VehicleFormPage() {
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}`;
   };
 
-  const handleOwnerAdded = (newOwner: any) => {
+  const handleOwnerAdded = (newOwner: Owner) => {
+    addOwner(newOwner);
     setSelectedOwnerId(newOwner.id);
     setShowOwnerModal(false);
   };
@@ -94,6 +117,12 @@ export default function VehicleFormPage() {
           </div>
 
           <form onSubmit={handleSubmit} className="px-8 py-8 space-y-8">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded shadow-sm text-sm">
+                {error}
+              </div>
+            )}
+
             {/* Seção Veículo */}
             <section>
               <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-6">Informações do Veículo</h2>
@@ -111,12 +140,35 @@ export default function VehicleFormPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-sm font-semibold text-slate-700 mb-2">Modelo e Marca *</label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Marca *</label>
+                  <input
+                    type="text"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Ex: Fiat"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Modelo *</label>
                   <input
                     type="text"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    placeholder="Ex: Fiat Uno"
+                    placeholder="Ex: Uno"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Ano *</label>
+                  <input
+                    type="number"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    min={1950}
+                    max={new Date().getFullYear() + 1}
                     className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     required
                   />
@@ -161,11 +213,15 @@ export default function VehicleFormPage() {
               </button>
               <button 
                 type="submit" 
-                disabled={!selectedOwnerId || !license_plate || !model}
+                disabled={!selectedOwnerId || !license_plate || !brand || !model || !year || isSubmitting}
                 className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isEdit ? 'Salvar Alterações' : 'Cadastrar Veículo'}
+                {isSubmitting
+                  ? 'Salvando...'
+                  : isEdit
+                    ? 'Salvar Alterações'
+                    : 'Cadastrar Veículo'}
               </button>
             </div>
           </form>

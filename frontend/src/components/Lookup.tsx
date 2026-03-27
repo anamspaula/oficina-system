@@ -20,6 +20,12 @@ export function Lookup({ options, value, onChange, placeholder = 'Selecione...' 
   const [search, setSearch] = useState('');
   const containerRef = useRef<HTMLDivElement>(null);
 
+  const normalizeText = (text: string) =>
+    text
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase();
+
   const selectedOption = options.find((opt) => opt.value === value);
 
   useEffect(() => {
@@ -34,7 +40,7 @@ export function Lookup({ options, value, onChange, placeholder = 'Selecione...' 
   }, []);
 
   const filteredOptions = options.filter((opt) =>
-    opt.label.toLowerCase().includes(search.toLowerCase())
+    normalizeText(opt.label).includes(normalizeText(search))
   );
 
   const handleSelect = (optionValue: string) => {

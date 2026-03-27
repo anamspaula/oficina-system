@@ -18,10 +18,21 @@ class ApiService {
   private getAuthToken(): string | null {
     if (typeof window === 'undefined') return null;
 
+    // Prioriza cookie para manter consistência com a proteção de rotas (proxy).
+    const cookieToken = Cookies.get('auth_token');
+    if (cookieToken) return cookieToken;
+
     const localToken = localStorage.getItem('@Oficina:token');
     if (localToken) return localToken;
 
-    return Cookies.get('auth_token') || null;
+    // Compatibilidade com versões antigas do frontend.
+    const legacyToken = localStorage.getItem('token');
+    if (legacyToken) {
+      localStorage.setItem('@Oficina:token', legacyToken);
+      return legacyToken;
+    }
+
+    return null;
   }
 
   private async request<T>(

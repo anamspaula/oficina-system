@@ -24,13 +24,14 @@ export default function OrderDetailsPage() {
   const id = params?.id as string;
   const router = useRouter();
   
-  const { orders, getVehicle, getResponsible, updateOrderStatus, updateOrderDescription } = useData();
+  const { orders, owners, getVehicle, getResponsible, updateOrderStatus, updateOrderDescription } = useData();
 
   const [isEditingDescription, setIsEditingDescription] = useState(false);
   const [editedDescription, setEditedDescription] = useState('');
 
   const order = orders.find((o) => o.id === id);
   const vehicle = order ? getVehicle(order.vehicleId) : undefined;
+  const owner = vehicle ? owners.find((item) => item.id === vehicle.ownerId) : undefined;
   const responsible = order ? getResponsible(order.responsibleId) : undefined;
 
   if (!order || !vehicle) {
@@ -128,7 +129,7 @@ export default function OrderDetailsPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] text-slate-500 font-bold uppercase">Placa</label>
-                    <p className="font-mono text-xl font-bold text-slate-800 leading-tight">{vehicle.plate}</p>
+                    <p className="font-mono text-xl font-bold text-slate-800 leading-tight">{vehicle.license_plate}</p>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-bold uppercase">Modelo</label>
@@ -144,11 +145,11 @@ export default function OrderDetailsPage() {
                 <div className="space-y-4">
                   <div>
                     <label className="text-[10px] text-slate-500 font-bold uppercase">Nome</label>
-                    <p className="font-bold text-slate-800 leading-tight">{vehicle.owner}</p>
+                    <p className="font-bold text-slate-800 leading-tight">{owner?.name || 'Não informado'}</p>
                   </div>
                   <div>
                     <label className="text-[10px] text-slate-500 font-bold uppercase">Telefone</label>
-                    <p className="font-semibold text-blue-600">{vehicle.phone}</p>
+                    <p className="font-semibold text-blue-600">{owner?.phone || 'Não informado'}</p>
                   </div>
                 </div>
               </section>

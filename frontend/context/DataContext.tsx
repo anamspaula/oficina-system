@@ -1,6 +1,7 @@
 'use client';
 
-import { createContext, useContext, useState, ReactNode, useEffect } from 'react';
+import { createContext, useContext, useState, ReactNode, useEffect, useCallback } from 'react';
+import { apiService } from '@/src/services/api';
 
 // --- Interfaces ---
 
@@ -25,20 +26,41 @@ export interface Vehicle {
   ownerId: string;
 }
 
+export interface Owner {
+  id: string;
+  name: string;
+  phone: string;
+  cpf?: string;
+  email?: string;
+}
+
+interface VehicleApiResponse {
+  id: string;
+  brand: string;
+  licensePlate: string;
+  model: string;
+  year: number;
+  userId: string;
+  owner?: {
+    id: string;
+  };
+}
+
 interface DataContextType {
   vehicles: Vehicle[];
-  owners: any[];
+  owners: Owner[];
   orders: Order[];
   users: { id: string; name: string }[];
-  addVehicle: (vehicle: Omit<Vehicle, 'id'>) => Vehicle;
-  updateVehicle: (id: string, vehicle: Omit<Vehicle, 'id'>) => void;
+  addVehicle: (vehicle: Omit<Vehicle, 'id'>) => Promise<Vehicle | null>;
+  updateVehicle: (id: string, vehicle: Omit<Vehicle, 'id'>) => Promise<void>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => void;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   updateOrderDescription: (id: string, description: string) => void;
   getVehicle: (id: string) => Vehicle | undefined;
   getResponsible: (id: string) => { id: string; name: string } | undefined;
-  addOwner: (owner: any) => void;
+  addOwner: (owner: Owner) => void;
   fetchOwners: () => Promise<void>;
+  fetchVehicles: () => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -51,17 +73,7 @@ const MOCK_USERS = [
   { id: '3', name: 'Carlos Oliveira' },
 ];
 
-const INITIAL_VEHICLES: Vehicle[] = [
-  {
-    id: '1', brand: 'Fiat', license_plate: 'ABC-1234', model: 'Fiat Uno 2015', year: 2015, userId: 'd47e19d7-3861-48a9-bbeb-d029aba2e9c0', ownerId: '1'
-  },
-  {
-    id: '2', brand: 'VW', license_plate: 'DEF-5678', model: 'VW Gol 2018', year: 2018, userId: 'd47e19d7-3861-48a9-bbeb-d029aba2e9c0', ownerId: '2'
-  },
-  {
-    id: '3', brand: 'Chevrolet', license_plate: 'GHI-9012', model: 'Chevrolet Onix 2020', year: 2020, userId: 'd47e19d7-3861-48a9-bbeb-d029aba2e9c0', ownerId: '3'
-  },
-];
+const INITIAL_VEHICLES: Vehicle[] = [];
 
 const INITIAL_ORDERS: Order[] = [
   {
@@ -94,50 +106,68 @@ const INITIAL_ORDERS: Order[] = [
 
 export function DataProvider({ children }: { children: ReactNode }) {
   const [vehicles, setVehicles] = useState<Vehicle[]>(INITIAL_VEHICLES);
-  const [owners, setOwners] = useState<any[]>([]); // Estado dos proprietários
+  const [owners, setOwners] = useState<Owner[]>([]);
   const [orders, setOrders] = useState<Order[]>(INITIAL_ORDERS);
 
-  // --- BUSCA DE PROPRIETÁRIOS NO BACKEND ---
-  const fetchOwners = async () => {
-    try {
-      const token = localStorage.getItem('token');
-      if (!token) return;
+  const mapApiVehicleToContext = useCallback((vehicle: VehicleApiResponse): Vehicle => ({
+    id: vehicle.id,
+    brand: vehicle.brand,
+    license_plate: vehicle.licensePlate,
+    model: vehicle.model,
+    year: vehicle.year,
+    userId: vehicle.userId,
+    ownerId: vehicle.owner?.id || '',
+  }), []);
 
-      const response = await fetch('http://localhost:8080/owners', {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      if (response.ok) {
-        const data = await response.json();
-        setOwners(data);
-      }
-    } catch (error) {
-      console.error("Erro ao carregar proprietários:", error);
+  const fetchOwners = useCallback(async () => {
+    const response = await apiService.get<Owner[]>('/owners');
+    if (response.success && response.data) {
+      setOwners(response.data);
     }
-  };
-
-  // Carrega automaticamente ao iniciar o app
-  useEffect(() => {
-    fetchOwners();
   }, []);
+
+  const fetchVehicles = useCallback(async () => {
+    const response = await apiService.get<VehicleApiResponse[]>('/vehicles');
+    if (response.success && response.data) {
+      setVehicles(response.data.map(mapApiVehicleToContext));
+    }
+  }, [mapApiVehicleToContext]);
+
+  useEffect(() => {
+    const timeoutId = window.setTimeout(() => {
+      void Promise.all([fetchOwners(), fetchVehicles()]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchOwners, fetchVehicles]);
 
   // --- FUNÇÕES DE MANIPULAÇÃO ---
 
-  const addOwner = (newOwner: any) => {
+  const addOwner = (newOwner: Owner) => {
     setOwners((prev) => [...prev, newOwner]);
   };
 
-  const addVehicle = (vehicle: Omit<Vehicle, 'id'>): Vehicle => {
-    const newVehicle = {
-      ...vehicle,
-      id: Date.now().toString(),
+  const addVehicle = async (vehicle: Omit<Vehicle, 'id'>): Promise<Vehicle | null> => {
+    const payload = {
+      brand: vehicle.brand,
+      model: vehicle.model,
+      license_plate: vehicle.license_plate,
+      year: vehicle.year,
+      ownerId: vehicle.ownerId,
+      userId: vehicle.userId,
     };
-    setVehicles((prev) => [...prev, newVehicle]);
-    return newVehicle;
+
+    const response = await apiService.post<VehicleApiResponse>('/vehicles', payload);
+    if (!response.success || !response.data) {
+      return null;
+    }
+
+    const savedVehicle = mapApiVehicleToContext(response.data);
+    setVehicles((prev) => [...prev, savedVehicle]);
+    return savedVehicle;
   };
 
-  const updateVehicle = (id: string, vehicle: Omit<Vehicle, 'id'>) => {
+  const updateVehicle = async (id: string, vehicle: Omit<Vehicle, 'id'>) => {
     setVehicles((prev) =>
       prev.map((v) => (v.id === id ? { ...vehicle, id } : v))
     );
@@ -184,6 +214,7 @@ export function DataProvider({ children }: { children: ReactNode }) {
         getVehicle,
         getResponsible,
         fetchOwners,
+        fetchVehicles,
       }}
     >
       {children}

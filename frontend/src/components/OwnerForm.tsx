@@ -1,13 +1,22 @@
 import { useState } from 'react';
-import { Save, X } from 'lucide-react';
+import { Save } from 'lucide-react';
+import { apiService } from '@/src/services/api';
+
+interface Owner {
+  id: string;
+  name: string;
+  phone: string;
+  cpf?: string;
+  email?: string;
+}
 
 interface OwnerFormProps {
-  onSuccess?: (owner: any) => void;
+  onSuccess?: (owner: Owner) => void;
   onCancel?: () => void;
   isModal?: boolean;
 }
 
-export function OwnerForm({ onSuccess, onCancel, isModal = false }: OwnerFormProps) {
+export function OwnerForm({ onSuccess, onCancel }: OwnerFormProps) {
   const [name, setName] = useState('');
   const [cpf, setCpf] = useState('');
   const [email, setEmail] = useState('');
@@ -21,22 +30,15 @@ export function OwnerForm({ onSuccess, onCancel, isModal = false }: OwnerFormPro
     const ownerData = { name, cpf, email, phone };
 
     try {
-      const response = await fetch('http://localhost:8080/owners', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('token')}`
-        },
-        body: JSON.stringify(ownerData)
-      });
+      const response = await apiService.post<Owner>('/owners', ownerData);
 
-      if (response.ok) {
-        const savedOwner = await response.json();
+      if (response.success && response.data) {
+        const savedOwner = response.data;
         if (onSuccess) onSuccess(savedOwner);
       } else {
         alert("Erro ao cadastrar proprietário. Verifique os dados.");
       }
-    } catch (error) {
+    } catch {
       alert("Erro de conexão com o servidor.");
     } finally {
       setLoading(false);
