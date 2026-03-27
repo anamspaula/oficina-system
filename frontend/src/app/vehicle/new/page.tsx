@@ -1,64 +1,94 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useData } from '@/context/DataContext';
-import { ArrowLeft, Save, Car } from 'lucide-react';
+import { Owner, useData } from '@/context/DataContext';
+import { useAuth } from '@/context/AuthContext';
+import { ArrowLeft, Save, Car, UserPlus } from 'lucide-react';
+import { OwnerForm } from '@/src/components/OwnerForm';
+import { Lookup } from '@/src/components/Lookup';
 
 export default function VehicleFormPage() {
   const params = useParams();
   const id = params?.id as string;
   const router = useRouter();
-  const { vehicles, addVehicle, updateVehicle } = useData();
+  const { user } = useAuth();
+  const { vehicles, addVehicle, updateVehicle, owners, addOwner, fetchOwners } = useData();
 
   const isEdit = !!id;
   const existingVehicle = isEdit ? vehicles.find((v) => v.id === id) : undefined;
 
-  const [plate, setPlate] = useState(existingVehicle?.plate || '');
+  // Estados do Veículo
+  const [brand, setBrand] = useState(existingVehicle?.brand || '');
+  const [license_plate, setLicensePlate] = useState(existingVehicle?.license_plate || '');
   const [model, setModel] = useState(existingVehicle?.model || '');
-  const [owner, setOwner] = useState(existingVehicle?.owner || '');
-  const [phone, setPhone] = useState(existingVehicle?.phone || '');
+  const [year, setYear] = useState(existingVehicle?.year || new Date().getFullYear());
+  const [error, setError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
+  // Estados do Proprietário
+  const [selectedOwnerId, setSelectedOwnerId] = useState(existingVehicle?.ownerId || '');
+  const [showOwnerModal, setShowOwnerModal] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const ownerOptions = owners?.map((o) => ({
+    value: o.id,
+    label: `${o.name} - ${o.phone}`
+  })) || [];
+
+  useEffect(() => {
+    void fetchOwners();
+  }, [fetchOwners]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setError('');
+
+    const userId = existingVehicle?.userId || user?.id;
+    if (!userId) {
+      setError('Usuário autenticado não encontrado. Faça login novamente.');
+      return;
+    }
+
+    setIsSubmitting(true);
     
-    const vehicleData = { plate, model, owner, phone };
+    const vehicleData = { 
+      brand,
+      license_plate, 
+      model, 
+      year,
+      userId,
+      ownerId: selectedOwnerId 
+    };
     
     if (isEdit && id) {
-      updateVehicle(id, vehicleData);
+      await updateVehicle(id, vehicleData);
     } else {
-      addVehicle(vehicleData);
+      const savedVehicle = await addVehicle(vehicleData);
+      if (!savedVehicle) {
+        setError('Não foi possível cadastrar o veículo. Verifique os dados informados.');
+        setIsSubmitting(false);
+        return;
+      }
     }
     
+    setIsSubmitting(false);
     router.back();
   };
 
   const formatPlate = (value: string) => {
     const cleaned = value.replace(/[^A-Za-z0-9]/g, '').toUpperCase();
     if (cleaned.length <= 3) return cleaned;
-    // Suporta formato antigo ABC-1234 e Mercosul ABC1D23 (limitando a 7 caracteres úteis)
     return `${cleaned.slice(0, 3)}-${cleaned.slice(3, 7)}`;
   };
 
-  const handlePlateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPlate(e.target.value);
-    setPlate(formatted);
-  };
-
-  const formatPhone = (value: string) => {
-    const cleaned = value.replace(/\D/g, '');
-    if (cleaned.length <= 2) return cleaned.length > 0 ? `(${cleaned}` : '';
-    if (cleaned.length <= 6) return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2)}`;
-    return `(${cleaned.slice(0, 2)}) ${cleaned.slice(2, 7)}-${cleaned.slice(7, 11)}`;
-  };
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const formatted = formatPhone(e.target.value);
-    setPhone(formatted);
+  const handleOwnerAdded = (newOwner: Owner) => {
+    addOwner(newOwner);
+    setSelectedOwnerId(newOwner.id);
+    setShowOwnerModal(false);
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4">
+    <div className="min-h-screen bg-slate-50 p-4 relative">
       <div className="max-w-3xl mx-auto py-8">
         <button
           onClick={() => router.back()}
@@ -68,9 +98,9 @@ export default function VehicleFormPage() {
           Voltar
         </button>
 
-        <div className="bg-white rounded-xl shadow-xl overflow-hidden border border-slate-200">
+        <div className="bg-white rounded-xl shadow-xl border border-slate-200">
           {/* Header */}
-          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-8">
+          <div className="bg-gradient-to-r from-blue-600 to-blue-700 px-8 py-8 rounded-t-xl">
             <div className="flex items-center gap-4">
               <div className="bg-white/20 p-3 rounded-lg backdrop-blur-sm">
                 <Car className="w-8 h-8 text-white" />
@@ -80,105 +110,141 @@ export default function VehicleFormPage() {
                   {isEdit ? 'Editar Veículo' : 'Cadastrar Novo Veículo'}
                 </h1>
                 <p className="text-blue-100 text-sm opacity-90">
-                  {isEdit ? 'Atualize as informações do veículo e proprietário' : 'Preencha os dados para registrar o veículo na oficina'}
+                  Preencha os dados técnicos e vincule a um proprietário
                 </p>
               </div>
             </div>
           </div>
 
-          {/* Form */}
           <form onSubmit={handleSubmit} className="px-8 py-8 space-y-8">
+            {error && (
+              <div className="bg-red-50 border-l-4 border-red-500 text-red-700 px-4 py-3 rounded shadow-sm text-sm">
+                {error}
+              </div>
+            )}
+
+            {/* Seção Veículo */}
             <section>
               <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-6">Informações do Veículo</h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
-                  <label htmlFor="plate" className="block text-sm font-semibold text-slate-700 mb-2">
-                    Placa *
-                  </label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Placa *</label>
                   <input
-                    id="plate"
                     type="text"
-                    value={plate}
-                    onChange={handlePlateChange}
+                    value={license_plate}
+                    onChange={(e) => setLicensePlate(formatPlate(e.target.value))}
                     placeholder="ABC-1234"
                     maxLength={8}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition uppercase font-mono"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none uppercase font-mono"
                     required
                   />
                 </div>
-
                 <div>
-                  <label htmlFor="model" className="block text-sm font-semibold text-slate-700 mb-2">
-                    Modelo e Marca *
-                  </label>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Marca *</label>
                   <input
-                    id="model"
+                    type="text"
+                    value={brand}
+                    onChange={(e) => setBrand(e.target.value)}
+                    placeholder="Ex: Fiat"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Modelo *</label>
+                  <input
                     type="text"
                     value={model}
                     onChange={(e) => setModel(e.target.value)}
-                    placeholder="Ex: Fiat Uno 2015 Prata"
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
+                    placeholder="Ex: Uno"
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
+                    required
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-semibold text-slate-700 mb-2">Ano *</label>
+                  <input
+                    type="number"
+                    value={year}
+                    onChange={(e) => setYear(Number(e.target.value))}
+                    min={1950}
+                    max={new Date().getFullYear() + 1}
+                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
                     required
                   />
                 </div>
               </div>
             </section>
 
+            {/* Seção Proprietário */}
             <section className="border-t border-slate-100 pt-8">
-              <h2 className="text-sm font-bold text-blue-600 uppercase tracking-wider mb-6">Dados do Proprietário</h2>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label htmlFor="owner" className="block text-sm font-semibold text-slate-700 mb-2">
-                    Nome do Cliente *
-                  </label>
-                  <input
-                    id="owner"
-                    type="text"
-                    value={owner}
-                    onChange={(e) => setOwner(e.target.value)}
-                    placeholder="Nome completo"
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition"
-                    required
-                  />
-                </div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-sm font-bold text-blue-600 uppercase tracking-wider">
+                  Proprietário *
+                </label>
+                <button
+                  type="button"
+                  onClick={() => setShowOwnerModal(true)}
+                  className="flex items-center gap-1 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition"
+                >
+                  <UserPlus className="w-3 h-3" />
+                  NOVO CLIENTE
+                </button>
+              </div>
 
-                <div>
-                  <label htmlFor="phone" className="block text-sm font-semibold text-slate-700 mb-2">
-                    Telefone de Contato *
-                  </label>
-                  <input
-                    id="phone"
-                    type="text"
-                    value={phone}
-                    onChange={handlePhoneChange}
-                    placeholder="(11) 98765-4321"
-                    maxLength={15}
-                    className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none transition font-mono"
-                    required
-                  />
-                </div>
+              <div className="relative z-10">
+                <Lookup
+                  options={ownerOptions}
+                  value={selectedOwnerId}
+                  onChange={setSelectedOwnerId}
+                  placeholder="Buscar por nome ou telefone do proprietário"
+                />
               </div>
             </section>
 
+            {/* Ações */}
             <div className="flex items-center justify-end gap-4 pt-8 border-t border-slate-100">
-              <button
-                type="button"
-                onClick={() => router.back()}
+              <button 
+                type="button" 
+                onClick={() => router.back()} 
                 className="px-6 py-2.5 border border-slate-300 text-slate-700 rounded-lg font-semibold hover:bg-slate-50 transition"
               >
                 Cancelar
               </button>
-              <button
-                type="submit"
-                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200"
+              <button 
+                type="submit" 
+                disabled={!selectedOwnerId || !license_plate || !brand || !model || !year || isSubmitting}
+                className="flex items-center gap-2 bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg font-bold transition shadow-lg shadow-blue-200 disabled:opacity-50"
               >
                 <Save className="w-4 h-4" />
-                {isEdit ? 'Salvar Alterações' : 'Cadastrar Veículo'}
+                {isSubmitting
+                  ? 'Salvando...'
+                  : isEdit
+                    ? 'Salvar Alterações'
+                    : 'Cadastrar Veículo'}
               </button>
             </div>
           </form>
         </div>
       </div>
+
+      {/* MODAL DE CADASTRO DE OWNER */}
+      {showOwnerModal && (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
+               <h3 className="font-bold text-slate-800">Cadastrar Novo Proprietário</h3>
+               <button onClick={() => setShowOwnerModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>
+            </div>
+            <div className="p-8">
+              <OwnerForm 
+                isModal={true} 
+                onSuccess={handleOwnerAdded} 
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

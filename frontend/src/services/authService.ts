@@ -144,18 +144,32 @@ class AuthService {
   saveToken(token: string) {
     if (typeof window !== 'undefined') {
       localStorage.setItem('@Oficina:token', token);
+      localStorage.setItem('token', token);
       Cookies.set('auth_token', token, { expires: 7, sameSite: 'Lax' });
     }
   }
 
   getToken(): string | null {
     if (typeof window === 'undefined') return null;
-    return localStorage.getItem('@Oficina:token');
+    const cookieToken = Cookies.get('auth_token');
+    if (cookieToken) return cookieToken;
+
+    const localToken = localStorage.getItem('@Oficina:token');
+    if (localToken) return localToken;
+
+    const legacyToken = localStorage.getItem('token');
+    if (legacyToken) {
+      localStorage.setItem('@Oficina:token', legacyToken);
+      return legacyToken;
+    }
+
+    return null;
   }
 
   clearToken() {
     if (typeof window !== 'undefined') {
       localStorage.removeItem('@Oficina:token');
+      localStorage.removeItem('token');
       Cookies.remove('auth_token');
     }
   }

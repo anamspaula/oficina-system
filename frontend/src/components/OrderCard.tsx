@@ -9,9 +9,10 @@ interface OrderCardProps {
 }
 
 export function OrderCard({ order }: OrderCardProps) {
-  const { getVehicle } = useData();
+  const { getVehicle, owners } = useData();
   const router = useRouter();
   const vehicle = getVehicle(order.vehicleId);
+  const owner = vehicle ? owners.find((item) => item.id === vehicle.ownerId) : undefined;
 
   // Se o veículo não existir, não renderiza o card para evitar erros
   if (!vehicle) return null;
@@ -22,7 +23,7 @@ export function OrderCard({ order }: OrderCardProps) {
         <div className="flex items-start justify-between">
           <div>
             <p className="font-bold text-slate-800 text-lg uppercase tracking-tight">
-              {vehicle.plate}
+              {vehicle.license_plate}
             </p>
             <p className="text-sm text-slate-600 font-medium">{vehicle.model}</p>
           </div>
@@ -30,7 +31,7 @@ export function OrderCard({ order }: OrderCardProps) {
         
         <div className="border-t border-slate-100 pt-2">
           <p className="text-xs text-slate-400 uppercase font-bold mb-1">Proprietário</p>
-          <p className="text-sm font-semibold text-slate-700">{vehicle.owner}</p>
+          <p className="text-sm font-semibold text-slate-700">{owner?.name || 'Sem proprietário'}</p>
           <p className="text-sm text-slate-600 mt-2 line-clamp-2 italic">
             &ldquo;{order.description}&rdquo;
           </p>
