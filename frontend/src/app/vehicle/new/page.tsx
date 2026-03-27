@@ -63,7 +63,16 @@ export default function VehicleFormPage() {
     };
     
     if (isEdit && id) {
-      await updateVehicle(id, vehicleData);
+      const updatedVehicle = await updateVehicle(id, vehicleData);
+      if (!updatedVehicle.success) {
+        setError(
+          updatedVehicle.status === 403
+            ? 'Sua sessão expirou ou não tem permissão para atualizar veículos. Faça login novamente.'
+            : 'Não foi possível atualizar o veículo. Verifique os dados e tente novamente.'
+        );
+        setIsSubmitting(false);
+        return;
+      }
     } else {
       const savedVehicle = await addVehicle(vehicleData);
       if (!savedVehicle) {
@@ -190,30 +199,32 @@ export default function VehicleFormPage() {
                 <label className="block text-sm font-bold text-blue-600 uppercase tracking-wider">
                   Proprietário *
                 </label>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setOwnerModalMode('create');
-                    setShowOwnerModal(true);
-                  }}
-                  className="flex items-center gap-1 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition"
-                >
-                  <UserPlus className="w-3 h-3" />
-                  NOVO CLIENTE
-                </button>
-                <button
-                  type="button"
-                  onClick={() => {
-                    if (!selectedOwner) return;
-                    setOwnerModalMode('edit');
-                    setShowOwnerModal(true);
-                  }}
-                  disabled={!selectedOwner}
-                  className="flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
-                >
-                  <Pencil className="w-3 h-3" />
-                  EDITAR CLIENTE
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setOwnerModalMode('create');
+                      setShowOwnerModal(true);
+                    }}
+                    className="flex items-center gap-1 text-xs font-bold bg-emerald-100 text-emerald-700 px-3 py-1.5 rounded-full hover:bg-emerald-200 transition"
+                  >
+                    <UserPlus className="w-3 h-3" />
+                    NOVO CLIENTE
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (!selectedOwner) return;
+                      setOwnerModalMode('edit');
+                      setShowOwnerModal(true);
+                    }}
+                    disabled={!selectedOwner}
+                    className="flex items-center gap-1 text-xs font-bold bg-amber-100 text-amber-700 px-3 py-1.5 rounded-full hover:bg-amber-200 transition disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    <Pencil className="w-3 h-3" />
+                    EDITAR CLIENTE
+                  </button>
+                </div>
               </div>
 
               <div className="relative z-10">

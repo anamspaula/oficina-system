@@ -52,7 +52,7 @@ interface DataContextType {
   orders: Order[];
   users: { id: string; name: string }[];
   addVehicle: (vehicle: Omit<Vehicle, 'id'>) => Promise<Vehicle | null>;
-  updateVehicle: (id: string, vehicle: Omit<Vehicle, 'id'>) => Promise<void>;
+  updateVehicle: (id: string, vehicle: Omit<Vehicle, 'id'>) => Promise<{ success: boolean; status: number }>;
   addOrder: (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => void;
   updateOrderStatus: (id: string, status: OrderStatus) => void;
   updateOrderDescription: (id: string, description: string) => void;
@@ -175,9 +175,25 @@ export function DataProvider({ children }: { children: ReactNode }) {
   };
 
   const updateVehicle = async (id: string, vehicle: Omit<Vehicle, 'id'>) => {
+    const payload = {
+      brand: vehicle.brand,
+      model: vehicle.model,
+      license_plate: vehicle.license_plate,
+      year: vehicle.year,
+      ownerId: vehicle.ownerId,
+    };
+
+    const response = await apiService.put<VehicleApiResponse>(`/vehicles/${id}`, payload);
+    if (!response.success || !response.data) {
+      return { success: false, status: response.status };
+    }
+
+    const updatedVehicle = mapApiVehicleToContext(response.data);
     setVehicles((prev) =>
-      prev.map((v) => (v.id === id ? { ...vehicle, id } : v))
+      prev.map((item) => (item.id === id ? updatedVehicle : item))
     );
+
+    return { success: true, status: response.status };
   };
 
   const addOrder = (order: Omit<Order, 'id' | 'createdAt' | 'status'>) => {

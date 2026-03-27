@@ -100,8 +100,8 @@ export default function CreateOrderPage() {
                 {selectedVehicle && (
                   <button
                     type="button"
-                    onClick={() => router.push(`/vehicle/edit/${vehicleId}`)}
-                    className="flex items-center gap-2 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition shadow-md"
+                    onClick={() => router.push(`/vehicle/${vehicleId}`)}
+                    className="flex items-center gap-1 bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg transition shadow-md"
                     title="Editar veículo"
                   >
                     <Edit className="w-4 h-4" />
