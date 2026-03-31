@@ -37,13 +37,17 @@ public class OrderController {
     private UserRepository userRepository;
 
     @PostMapping
-    public ResponseEntity<ServiceOrder> create(@RequestBody @Valid OrderRequestDTO data) {
+    public ResponseEntity<?> create(@RequestBody @Valid OrderRequestDTO data) {
         // Busca o veículo pelo ID que veio do DTO
         Vehicle vehicle = vehicleRepository.findById(data.vehicleId())
                 .orElseThrow(() -> new RuntimeException("Veículo não encontrado"));
 
         User mechanic = userRepository.findById(data.responsibleId())
                 .orElseThrow(() -> new RuntimeException("Mecânico responsável não encontrado"));
+
+        if (!mechanic.isMechanic()) {
+            return ResponseEntity.badRequest().body("O responsável informado não está marcado como mecânico.");
+        }
 
         // Monta a Ordem de Serviço vinculando os objetos completos
         ServiceOrder order = new ServiceOrder();

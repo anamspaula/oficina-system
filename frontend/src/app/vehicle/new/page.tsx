@@ -32,10 +32,10 @@ export default function VehicleFormPage() {
   const [ownerModalMode, setOwnerModalMode] = useState<'create' | 'edit'>('create');
 
   const ownerOptions = owners?.map((o) => ({
-    value: o.id,
+    value: String(o.id),
     label: `${o.name} - ${o.phone}`
   })) || [];
-  const selectedOwner = owners.find((o) => o.id === selectedOwnerId);
+  const selectedOwner = owners.find((o) => String(o.id) === selectedOwnerId);
 
   useEffect(() => {
     void fetchOwners();
@@ -73,6 +73,8 @@ export default function VehicleFormPage() {
         setIsSubmitting(false);
         return;
       }
+
+      sessionStorage.setItem('@Oficina:lastSelectedVehicleId', String(id));
     } else {
       const savedVehicle = await addVehicle(vehicleData);
       if (!savedVehicle) {
@@ -80,6 +82,8 @@ export default function VehicleFormPage() {
         setIsSubmitting(false);
         return;
       }
+
+      sessionStorage.setItem('@Oficina:lastSelectedVehicleId', String(savedVehicle.id));
     }
     
     setIsSubmitting(false);
@@ -93,14 +97,18 @@ export default function VehicleFormPage() {
   };
 
   const handleOwnerAdded = (newOwner: Owner) => {
+    const ownerId = String(newOwner.id);
     addOwner(newOwner);
-    setSelectedOwnerId(newOwner.id);
+    setSelectedOwnerId(ownerId);
+    void fetchOwners();
     setShowOwnerModal(false);
   };
 
   const handleOwnerUpdated = (updatedOwner: Owner) => {
+    const ownerId = String(updatedOwner.id);
     updateOwner(updatedOwner);
-    setSelectedOwnerId(updatedOwner.id);
+    setSelectedOwnerId(ownerId);
+    void fetchOwners();
     setShowOwnerModal(false);
   };
 
@@ -231,7 +239,7 @@ export default function VehicleFormPage() {
                 <Lookup
                   options={ownerOptions}
                   value={selectedOwnerId}
-                  onChange={setSelectedOwnerId}
+                  onChange={(value) => setSelectedOwnerId(String(value))}
                   placeholder="Buscar por nome ou telefone do proprietário"
                 />
               </div>
@@ -267,8 +275,8 @@ export default function VehicleFormPage() {
       {showOwnerModal && (
         <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden animate-in fade-in zoom-in duration-200">
-            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-               <h3 className="font-bold text-slate-800">
+            <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-blue-600">
+               <h3 className="font-bold text-white">
                  {ownerModalMode === 'edit' ? 'Editar Proprietário' : 'Cadastrar Novo Proprietário'}
                </h3>
                <button onClick={() => setShowOwnerModal(false)} className="text-slate-400 hover:text-slate-600">✕</button>

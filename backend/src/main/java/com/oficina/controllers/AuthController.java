@@ -72,6 +72,7 @@ public class AuthController {
         newUser.setPassword(encryptedPassword);
         newUser.setName(data.name());
         newUser.setRole(data.role());
+        newUser.setMechanic(Boolean.TRUE.equals(data.isMechanic()));
         newUser.setPhone(data.phone());
         newUser.setAddress(data.address());
         newUser.setBirthDate(data.birthDate());

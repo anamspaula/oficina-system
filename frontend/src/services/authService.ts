@@ -18,6 +18,7 @@ export interface RegisterRequest {
   email: string;
   password: string;
   name: string;
+  isMechanic?: boolean;
   phone?: string;
   address?: string;
   birthDate?: string;
@@ -38,9 +39,21 @@ export interface CurrentUserResponse {
   name: string;
   email: string;
   role: string;
+  isMechanic: boolean;
   phone?: string;
   address?: string;
   birthDate?: string;
+}
+
+export interface AdminUserUpdateRequest {
+  name: string;
+  email: string;
+  role: 'admin' | 'user';
+  isMechanic: boolean;
+  phone?: string;
+  address?: string;
+  birthDate?: string;
+  newPassword?: string;
 }
 
 class AuthService {
@@ -90,12 +103,12 @@ class AuthService {
     const payload = {
       ...data,
       role: data.role === 'admin' ? 'ADMIN' : 'USER',
+      isMechanic: Boolean(data.isMechanic),
     };
 
     const response = await apiService.post<LoginResponse>(
       '/auth/register',
-      payload,
-      true // É uma rota pública
+      payload
     );
 
     if (response.success) {
@@ -138,6 +151,61 @@ class AuthService {
     return {
       success: false,
       error: response.error || 'Nao foi possível carregar o perfil do usuário',
+    };
+  }
+
+  async getUsersForAdmin() {
+    const response = await apiService.get<CurrentUserResponse[]>('/admin/users');
+
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Nao foi possível carregar usuários',
+    };
+  }
+
+  async getUserByIdAsAdmin(userId: string) {
+    const response = await apiService.get<CurrentUserResponse>(`/admin/users/${userId}`);
+
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Nao foi possível carregar usuário',
+    };
+  }
+
+  async updateUserAsAdmin(userId: string, data: AdminUserUpdateRequest) {
+    const payload = {
+      ...data,
+      role: data.role === 'admin' ? 'ADMIN' : 'USER',
+      isMechanic: Boolean(data.isMechanic),
+      newPassword: data.newPassword?.trim() ? data.newPassword : undefined,
+    };
+
+    const response = await apiService.put<CurrentUserResponse>(`/admin/users/${userId}`, payload);
+
+    if (response.success && response.data) {
+      return {
+        success: true,
+        data: response.data,
+      };
+    }
+
+    return {
+      success: false,
+      error: response.error || 'Nao foi possível atualizar usuário',
     };
   }
 

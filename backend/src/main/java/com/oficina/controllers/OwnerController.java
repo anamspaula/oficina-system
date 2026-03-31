@@ -69,6 +69,8 @@ public class OwnerController {
         // Atualiza os campos
         owner.setName(data.name());
         owner.setPhone(data.phone());
+        owner.setCpf(data.cpf());
+        owner.setEmail(data.email());
 
         Owner updatedOwner = repository.save(owner);
 

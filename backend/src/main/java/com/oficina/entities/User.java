@@ -5,9 +5,21 @@ import java.util.List;
 
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
+
 import com.oficina.UserRole;
-import jakarta.persistence.*;
-import lombok.*;
+
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 /** Entidade que representa um usuário no sistema. */
 @Entity
@@ -33,6 +45,9 @@ public class User implements org.springframework.security.core.userdetails.UserD
 
     @Enumerated(EnumType.STRING)
     private UserRole role;
+
+    @Column(nullable = false, columnDefinition = "boolean default false")
+    private boolean mechanic;
 
     private String address;
     private String birthDate;

@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/context/AuthContext';
-import { User, LogOut, UserPlus, ChevronDown } from 'lucide-react';
+import { User, LogOut, UserPlus, ChevronDown, Users } from 'lucide-react';
 
 export function UserMenu() {
   const { user, logout } = useAuth();
@@ -67,16 +67,29 @@ export function UserMenu() {
             </button>
 
             {user.role === 'admin' && (
-              <button
-                onClick={() => {
-                  router.push('/users/new');
-                  setIsOpen(false);
-                }}
-                className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
-              >
-                <UserPlus className="w-4 h-4" />
-                Criar Usuário
-              </button>
+              <>
+                <button
+                  onClick={() => {
+                    router.push('/users/manage');
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
+                >
+                  <Users className="w-4 h-4" />
+                  Gerenciar Usuários
+                </button>
+
+                <button
+                  onClick={() => {
+                    router.push('/users/new');
+                    setIsOpen(false);
+                  }}
+                  className="w-full flex items-center gap-3 px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 transition"
+                >
+                  <UserPlus className="w-4 h-4" />
+                  Criar Usuário
+                </button>
+              </>
             )}
           </div>
 
