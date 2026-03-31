@@ -3,7 +3,7 @@
 import { createContext, useContext, useEffect, useState, ReactNode } from 'react';
 import { authService } from '@/src/services/authService';
 import { getEmailFromToken, getNameFromToken, getRoleFromToken } from '@/src/utils/jwt';
-import type { CurrentUserResponse } from '@/src/services/authService';
+import type { AdminUserUpdateRequest, CurrentUserResponse } from '@/src/services/authService';
 
 // --- Interfaces ---
 
@@ -13,6 +13,7 @@ export interface User {
   email: string;
   password?: string;
   role: 'admin' | 'user';
+  isMechanic?: boolean;
   address?: string;
   birthDate?: string;
   phone?: string;
@@ -23,6 +24,12 @@ interface AuthContextType {
   login: (email: string, password: string) => Promise<boolean>;
   logout: () => void;
   addUser: (userData: Omit<User, 'id'>) => Promise<boolean>;
+  getUsersForAdmin: () => Promise<{ success: boolean; data?: User[]; error?: string }>;
+  getUserByIdAsAdmin: (userId: string) => Promise<{ success: boolean; data?: User; error?: string }>;
+  updateUserByAdmin: (
+    userId: string,
+    data: AdminUserUpdateRequest
+  ) => Promise<{ success: boolean; data?: User; error?: string }>;
   updateProfile: (
     data: Partial<Pick<User, 'name' | 'address' | 'birthDate' | 'phone'>>
   ) => Promise<{ success: boolean; error?: string }>;
@@ -42,6 +49,7 @@ function mapCurrentUserToContext(userData: CurrentUserResponse): User {
     email: userData.email,
     name: userData.name,
     role: userData.role === 'ADMIN' ? 'admin' : 'user',
+    isMechanic: userData.isMechanic,
     phone: userData.phone,
     address: userData.address,
     birthDate: userData.birthDate,
@@ -111,6 +119,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email: tokenEmail || email,
             name: tokenName || email.split('@')[0],
             role: tokenRole || 'user',
+            isMechanic: false,
           };
         } else {
           // Fallback se não conseguir extrair do token
@@ -119,6 +128,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
             email,
             name: email.split('@')[0],
             role: 'user',
+            isMechanic: false,
           };
         }
         
@@ -153,6 +163,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         email: userData.email,
         password: userData.password || '',
         name: userData.name,
+        isMechanic: Boolean(userData.isMechanic),
         phone: userData.phone,
         address: userData.address,
         birthDate: userData.birthDate,
@@ -172,6 +183,66 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
+  };
+
+  const getUsersForAdmin = async (): Promise<{ success: boolean; data?: User[]; error?: string }> => {
+    const response = await authService.getUsersForAdmin();
+
+    if (!response.success || !response.data) {
+      return {
+        success: false,
+        error: response.error || 'Nao foi possível carregar usuários',
+      };
+    }
+
+    return {
+      success: true,
+      data: response.data.map(mapCurrentUserToContext),
+    };
+  };
+
+  const getUserByIdAsAdmin = async (
+    userId: string
+  ): Promise<{ success: boolean; data?: User; error?: string }> => {
+    const response = await authService.getUserByIdAsAdmin(userId);
+
+    if (!response.success || !response.data) {
+      return {
+        success: false,
+        error: response.error || 'Nao foi possível carregar usuário',
+      };
+    }
+
+    return {
+      success: true,
+      data: mapCurrentUserToContext(response.data),
+    };
+  };
+
+  const updateUserByAdmin = async (
+    userId: string,
+    data: AdminUserUpdateRequest
+  ): Promise<{ success: boolean; data?: User; error?: string }> => {
+    const response = await authService.updateUserAsAdmin(userId, data);
+
+    if (!response.success || !response.data) {
+      return {
+        success: false,
+        error: response.error || 'Nao foi possível atualizar usuário',
+      };
+    }
+
+    const updatedUser = mapCurrentUserToContext(response.data);
+
+    if (user && user.id === updatedUser.id) {
+      setUser(updatedUser);
+      localStorage.setItem('@Oficina:user', JSON.stringify(updatedUser));
+    }
+
+    return {
+      success: true,
+      data: updatedUser,
+    };
   };
 
   const updateProfile = async (
@@ -243,6 +314,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       login, 
       logout, 
       addUser,
+      getUsersForAdmin,
+      getUserByIdAsAdmin,
+      updateUserByAdmin,
       updateProfile, 
       changePassword, 
       loading,

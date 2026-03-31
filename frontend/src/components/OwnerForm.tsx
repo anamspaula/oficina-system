@@ -24,12 +24,32 @@ export function OwnerForm({ owner, onSuccess, onCancel, mode = 'create' }: Owner
   const [phone, setPhone] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const formatCPF = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+
+    if (digits.length <= 3) return digits;
+    if (digits.length <= 6) return `${digits.slice(0, 3)}.${digits.slice(3)}`;
+    if (digits.length <= 9) return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6)}`;
+
+    return `${digits.slice(0, 3)}.${digits.slice(3, 6)}.${digits.slice(6, 9)}-${digits.slice(9, 11)}`;
+  };
+
+  const formatPhone = (value: string) => {
+    const digits = value.replace(/\D/g, '').slice(0, 11);
+
+    if (digits.length <= 2) return digits.length > 0 ? `(${digits}` : '';
+    if (digits.length <= 6) return `(${digits.slice(0, 2)}) ${digits.slice(2)}`;
+    if (digits.length <= 10) return `(${digits.slice(0, 2)}) ${digits.slice(2, 6)}-${digits.slice(6, 10)}`;
+
+    return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7, 11)}`;
+  };
+
   useEffect(() => {
     if (!owner) return;
 
     setName(owner.name || '');
-    setPhone(owner.phone || '');
-    setCpf(owner.cpf || '');
+    setPhone(formatPhone(owner.phone || ''));
+    setCpf(formatCPF(owner.cpf || ''));
     setEmail(owner.email || '');
   }, [owner]);
 
@@ -41,6 +61,8 @@ export function OwnerForm({ owner, onSuccess, onCancel, mode = 'create' }: Owner
       if (mode === 'edit' && owner?.id) {
         const response = await apiService.put<Owner>(`/owners/${owner.id}`, {
           name,
+          cpf,
+          email,
           phone,
         });
 
@@ -68,19 +90,13 @@ export function OwnerForm({ owner, onSuccess, onCancel, mode = 'create' }: Owner
     }
   };
 
-  // ... (Mantenha suas funções formatCPF e formatPhone aqui)
-
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <input placeholder="Nome Completo" value={name} onChange={e => setName(e.target.value)} className="p-3 border rounded-lg w-full" required />
-        <input placeholder="Telefone" value={phone} onChange={e => setPhone(e.target.value)} className="p-3 border rounded-lg w-full" required />
-        {mode === 'create' && (
-          <input placeholder="CPF" value={cpf} onChange={e => setCpf(e.target.value)} className="p-3 border rounded-lg w-full" />
-        )}
-        {mode === 'create' && (
-          <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="p-3 border rounded-lg w-full" />
-        )}
+        <input placeholder="Telefone" value={phone} onChange={e => setPhone(formatPhone(e.target.value))} maxLength={15} className="p-3 border rounded-lg w-full" required />
+        <input placeholder="CPF" value={cpf} onChange={e => setCpf(formatCPF(e.target.value))} maxLength={14} className="p-3 border rounded-lg w-full" />
+        <input placeholder="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="p-3 border rounded-lg w-full" />
       </div>
       
       <div className="flex justify-end gap-3 pt-4">

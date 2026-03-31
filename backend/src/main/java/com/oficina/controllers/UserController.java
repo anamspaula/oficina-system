@@ -1,5 +1,7 @@
 package com.oficina.controllers;
 
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -10,6 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.oficina.dto.UserLookupDTO;
 import com.oficina.dto.UserProfileDTO;
 import com.oficina.dto.UserUpdateDTO;
 import com.oficina.entities.User;
@@ -40,12 +43,22 @@ public class UserController {
             user.getName(),
             user.getEmail(),
             user.getRole().name(),
+            user.isMechanic(),
             user.getPhone(),
             user.getAddress(),
             user.getBirthDate()
         );
 
         return ResponseEntity.ok(response);
+    }
+
+    @GetMapping("/mechanics")
+    public ResponseEntity<List<UserLookupDTO>> listMechanics() {
+        List<UserLookupDTO> mechanics = repository.findByMechanicTrue().stream()
+            .map(user -> new UserLookupDTO(user.getId(), user.getName()))
+            .toList();
+
+        return ResponseEntity.ok(mechanics);
     }
 
     /**

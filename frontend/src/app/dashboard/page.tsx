@@ -18,7 +18,7 @@ const STATUS_CONFIG: Record<OrderStatus, { title: string; color: string; border:
 
 export default function DashboardPage() {
   const { user } = useAuth();
-  const { orders, vehicles, users, owners } = useData();
+  const { orders, vehicles, mechanics, owners } = useData();
   const router = useRouter();
   
   const [selectedResponsible, setSelectedResponsible] = useState<string>('');
@@ -50,7 +50,7 @@ export default function DashboardPage() {
   }, [filteredOrders]);
 
   // Opções para os lookups
-  const responsibleOptions = users.map((u) => ({ value: u.id, label: u.name }));
+  const responsibleOptions = mechanics.map((u) => ({ value: u.id, label: u.name }));
   const vehicleOptions = vehicles.map((v) => ({
     value: v.id,
     label: `${v.license_plate} - ${owners.find((o) => o.id === v.ownerId)?.name || 'Sem proprietário'}`,

@@ -4,5 +4,7 @@ import jakarta.validation.constraints.NotBlank;
 
 public record OwnerUpdateDTO(
     @NotBlank String name,
-    @NotBlank String phone
+    @NotBlank String phone,
+    String cpf,
+    String email
 ) {}

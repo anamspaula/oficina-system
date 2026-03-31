@@ -7,6 +7,7 @@ public record RegisterDTO(
     String password, 
     String name, 
     UserRole role, 
+    Boolean isMechanic,
     String phone,
     String address,
     String birthDate

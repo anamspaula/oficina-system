@@ -17,6 +17,7 @@ export default function CreateUserPage() {
   const [birthDate, setBirthDate] = useState('');
   const [phone, setPhone] = useState('');
   const [role, setRole] = useState<'user' | 'admin'>('user');
+  const [isMechanic, setIsMechanic] = useState(false);
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -50,6 +51,7 @@ export default function CreateUserPage() {
         name,
         email,
         password,
+        isMechanic,
         address,
         birthDate,
         phone,
@@ -216,6 +218,18 @@ export default function CreateUserPage() {
                   <option value="user">Colaborador (Padrão)</option>
                   <option value="admin">Administrador (Total)</option>
                 </select>
+              </div>
+
+              <div className="mt-4">
+                <label className="inline-flex items-center gap-3 text-sm font-semibold text-slate-700">
+                  <input
+                    type="checkbox"
+                    checked={isMechanic}
+                    onChange={(e) => setIsMechanic(e.target.checked)}
+                    className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  Marcar como mecânico (aparece no lookup de responsável)
+                </label>
               </div>
             </section>
 
