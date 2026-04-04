@@ -22,7 +22,7 @@ export default function VehicleFormPage() {
   const [brand, setBrand] = useState(existingVehicle?.brand || '');
   const [license_plate, setLicensePlate] = useState(existingVehicle?.license_plate || '');
   const [model, setModel] = useState(existingVehicle?.model || '');
-  const [year, setYear] = useState(existingVehicle?.year || new Date().getFullYear());
+  const [year, setYear] = useState(String(existingVehicle?.year || ''));
   const [error, setError] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   
@@ -57,7 +57,7 @@ export default function VehicleFormPage() {
       brand,
       license_plate, 
       model, 
-      year,
+      year: Number(year),
       userId,
       ownerId: selectedOwnerId 
     };
@@ -191,7 +191,8 @@ export default function VehicleFormPage() {
                   <input
                     type="number"
                     value={year}
-                    onChange={(e) => setYear(Number(e.target.value))}
+                    onChange={(e) => setYear(e.target.value)}
+                    placeholder="2026"
                     min={1950}
                     max={new Date().getFullYear() + 1}
                     className="w-full px-4 py-2.5 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 outline-none"
